@@ -97,6 +97,9 @@ run_once() {
                 then
                     echo -e "$d: $(with_color red AHEAD by ${ahead} $(maybe_pluralize ${ahead} COMMIT COMMITS))"
                     ahead_only=true
+                else
+                    echo -e "$d: $(with_color red BEHIND by ${behind} $(maybe_pluralize ${behind} COMMIT COMMITS) and AHEAD by ${ahead} $(maybe_pluralize ${ahead} COMMIT COMMITS))"
+                    ahead_only=true
                 fi
             elif [ "$ahead" == 0 -a "$behind" == 0 ]
             then
