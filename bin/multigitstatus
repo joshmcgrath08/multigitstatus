@@ -76,9 +76,8 @@ run_once() {
         status=$(git status --short)
 
         branch=$(current_git_branch)
-        revcounts=$(git rev-list --left-right --count "origin/${branch}..${branch}")
-        behind=$(echo "$revcounts" | awk '{print $1}')
-        ahead=$(echo "$revcounts" | awk '{print $2}')
+        behind=$(git rev-list --count "${branch}..origin/${branch}")
+        ahead=$(git rev-list --count "origin/${branch}..${branch}")
 
         ahead_only=false
         behind_only=false
@@ -119,22 +118,16 @@ run_once() {
 
             if [ "$behind" != '0' ]
             then
-                if [ "$behind_only" == 'false' ]
-                then
-                    echo
-                    with_color blue "Commits on origin/${branch} but not ${branch}:"
-                fi
-                git rev-list --oneline "${branch}..origin/${branch}" | colorize_lines blue
+                echo
+                with_color blue "Commits on origin/${branch} but not ${branch}:"
+                git rev-list --right-only --oneline "${branch}..origin/${branch}" | colorize_lines blue
             fi
 
             if [ "$ahead" != '0' ]
             then
-                if [ "$ahead_only" == 'false' ]
-                then
-                    echo
-                    with_color blue "Commits on ${branch} but not origin/${branch}:"
-                fi
-                git rev-list --oneline "origin/${branch}..${branch}" | colorize_lines blue
+                echo
+                with_color blue "Commits on ${branch} but not origin/${branch}:"
+                git rev-list --right-only --oneline "origin/${branch}..${branch}" | colorize_lines blue
             fi
             echo
         fi
