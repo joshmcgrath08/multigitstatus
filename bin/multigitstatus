@@ -1,0 +1,103 @@
+#!/bin/bash
+
+set -eu
+set -o pipefail
+
+BOLD_RED_COLOR='\033[1m\033[31m'
+BOLD_GREEN_COLOR='\033[1m\033[32m'
+BLUE_COLOR='\033[34m'
+TERMINATE_COLOR='\033[0m'
+
+maybe_pluralize() {
+    if [ "$1" == 1 ]
+    then
+        echo "$2"
+    else
+        echo "$3"
+    fi
+}
+
+run_once() {
+    for d in $(ls)
+    do
+        if [ ! -d "${d}/.git" ]
+        then
+            continue
+        fi
+
+        pushd $d &> /dev/null
+
+        status=$(git status --short)
+
+        branch=$(git branch --show-current)
+        revcounts=$(git rev-list --left-right --count "origin/${branch}..${branch}")
+        behind=$(echo "$revcounts" | awk '{print $1}')
+        ahead=$(echo "$revcounts" | awk '{print $2}')
+
+        ahead_only=false
+        behind_only=false
+        dirty_only=false
+
+        if [ "$status" == '' -a "$behind" == 0 -a "$ahead" == 0 ]
+        then
+            echo -e "$d: ${BOLD_GREEN_COLOR}CLEAN${TERMINATE_COLOR}"
+        else
+            if [ "$status" == '' ]
+            then
+                if [ "$ahead" == 0 ]
+                then
+                    echo -e "$d: ${BOLD_RED_COLOR}BEHIND by ${behind} $(maybe_pluralize ${behind} COMMIT COMMITS)${TERMINATE_COLOR}"
+                    behind_only=true
+                elif [ "$behind" == 0 ]
+                then
+                    echo -e "$d: ${BOLD_RED_COLOR}AHEAD BY ${ahead} $(maybe_pluralize ${ahead} COMMIT COMMITS)${TERMINATE_COLOR}"
+                    ahead_only=true
+                fi
+            elif [ "$ahead" == 0 -a "$behind" == 0 ]
+            then
+                echo -e "$d: ${BOLD_RED_COLOR}DIRTY WORKING TREE${TERMINATE_COLOR}"
+                dirty_only=true
+            else
+                echo -e "$d: ${BOLD_RED_COLOR}DIRTY${TERMINATE_COLOR}"
+            fi
+
+            echo -en "$BLUE_COLOR"
+            if [ "$status" != '' ]
+            then
+                if [ "$dirty_only" == 'false' ]
+                then
+                    echo -e "\nWorking tree is dirty:"
+                fi
+                echo "$status"
+            fi
+
+            if [ "$behind" != '0' ]
+            then
+                if [ "$behind_only" == 'false' ]
+                then
+                    echo -e "\nCommits on origin/${branch} but not ${branch}:"
+                fi
+                git rev-list --oneline "${branch}..origin/${branch}"
+            fi
+
+            if [ "$ahead" != '0' ]
+            then
+                if [ "$ahead_only" == 'false' ]
+                then
+                    echo -e "\nCommits on ${branch} but not origin/${branch}:"
+                fi
+                git rev-list --oneline "origin/${branch}..${branch}"
+            fi
+            echo -e "$TERMINATE_COLOR"
+        fi
+        popd &> /dev/null
+    done
+}
+
+if [ -z "${MULTIGITSTATUS_DO_RUN:-}" ]
+then
+    export MULTIGITSTATUS_DO_RUN=true
+    watch -c -n 15 "$0" "$@"
+else
+    run_once
+fi
