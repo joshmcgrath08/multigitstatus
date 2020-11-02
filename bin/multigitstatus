@@ -22,15 +22,15 @@ current_git_branch() {
 }
 
 with_color() {
-    if [ "$1" == "green" ]
+    if [ "$1" == 'green' ]
     then
         begin="$BOLD_GREEN_COLOR"
         end="$TERMINATE_COLOR"
-    elif [ "$1" == "red" ]
+    elif [ "$1" == 'red' ]
     then
         begin="$BOLD_RED_COLOR"
         end="$TERMINATE_COLOR"
-    elif [ "$1" == "blue" ]
+    elif [ "$1" == 'blue' ]
     then
         begin="$BLUE_COLOR"
         end="$TERMINATE_COLOR"
