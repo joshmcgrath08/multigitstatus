@@ -50,6 +50,9 @@ colorize_lines() {
 }
 
 run_once() {
+    with_color blue "Multigitstatus for $(pwd)"
+    echo
+
     if [ "${MULTIGITSTATUS_DO_FETCH:-false}" == 'true' ]
     then
         with_color blue 'Fetching updates from Git remotes...'
