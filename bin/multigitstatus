@@ -101,15 +101,21 @@ run_once() {
 if [ -z "${MULTIGITSTATUS_DO_RUN:-}" ]
 then
     export MULTIGITSTATUS_DO_RUN=true
+    sub_run_out=""
     while true
     do
-        "$0" "$@" | less -K -c -R &
+        if [ -z "$sub_run_out" ]
+        then
+            sub_run_out=$("$0" "$@")
+        fi
+        echo -e "$sub_run_out" | less -K -c -R &
         bg_pid=$!
         for i in $(seq 1 5)
         do
             { ps -p $bg_pid > /dev/null; } || exit 1
             sleep 1
         done
+        sub_run_out=$("$0" "$@")
         kill $bg_pid
     done
 else
