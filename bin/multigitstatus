@@ -17,6 +17,10 @@ maybe_pluralize() {
     fi
 }
 
+current_git_branch() {
+    git branch | egrep '^\*' | awk '{print $2}'
+}
+
 run_once() {
     for d in $(ls)
     do
@@ -29,7 +33,7 @@ run_once() {
 
         status=$(git status --short)
 
-        branch=$(git branch --show-current)
+        branch=$(current_git_branch)
         revcounts=$(git rev-list --left-right --count "origin/${branch}..${branch}")
         behind=$(echo "$revcounts" | awk '{print $1}')
         ahead=$(echo "$revcounts" | awk '{print $2}')
@@ -97,7 +101,17 @@ run_once() {
 if [ -z "${MULTIGITSTATUS_DO_RUN:-}" ]
 then
     export MULTIGITSTATUS_DO_RUN=true
-    watch -c -n 15 "$0" "$@"
+    while true
+    do
+        "$0" "$@" | less -K -c -R &
+        bg_pid=$!
+        for i in $(seq 1 5)
+        do
+            { ps -p $bg_pid > /dev/null; } || exit 1
+            sleep 1
+        done
+        kill $bg_pid
+    done
 else
     run_once
 fi
