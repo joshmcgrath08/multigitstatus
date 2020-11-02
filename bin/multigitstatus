@@ -21,6 +21,34 @@ current_git_branch() {
     git branch | egrep '^\*' | awk '{print $2}'
 }
 
+with_color() {
+    if [ "$1" == "green" ]
+    then
+        begin="$BOLD_GREEN_COLOR"
+        end="$TERMINATE_COLOR"
+    elif [ "$1" == "red" ]
+    then
+        begin="$BOLD_RED_COLOR"
+        end="$TERMINATE_COLOR"
+    elif [ "$1" == "blue" ]
+    then
+        begin="$BLUE_COLOR"
+        end="$TERMINATE_COLOR"
+    else
+        begin=''
+        end=''
+    fi
+    shift
+    echo -e "${begin}${@}${end}"
+}
+
+colorize_lines() {
+    while read -r l
+    do
+        with_color "$1" "$l"
+    done
+}
+
 run_once() {
     for d in $(ls)
     do
@@ -44,55 +72,57 @@ run_once() {
 
         if [ "$status" == '' -a "$behind" == 0 -a "$ahead" == 0 ]
         then
-            echo -e "$d: ${BOLD_GREEN_COLOR}CLEAN${TERMINATE_COLOR}"
+            echo -e "$d: $(with_color green CLEAN)"
         else
             if [ "$status" == '' ]
             then
                 if [ "$ahead" == 0 ]
                 then
-                    echo -e "$d: ${BOLD_RED_COLOR}BEHIND by ${behind} $(maybe_pluralize ${behind} COMMIT COMMITS)${TERMINATE_COLOR}"
+                    echo -e "$d: $(with_color red BEHIND by ${behind} $(maybe_pluralize ${behind} COMMIT COMMITS))"
                     behind_only=true
                 elif [ "$behind" == 0 ]
                 then
-                    echo -e "$d: ${BOLD_RED_COLOR}AHEAD BY ${ahead} $(maybe_pluralize ${ahead} COMMIT COMMITS)${TERMINATE_COLOR}"
+                    echo -e "$d: $(with_color red AHEAD by ${ahead} $(maybe_pluralize ${ahead} COMMIT COMMITS))"
                     ahead_only=true
                 fi
             elif [ "$ahead" == 0 -a "$behind" == 0 ]
             then
-                echo -e "$d: ${BOLD_RED_COLOR}DIRTY WORKING TREE${TERMINATE_COLOR}"
+                echo -e "$d: $(with_color red DIRTY WORKING TREE)"
                 dirty_only=true
             else
-                echo -e "$d: ${BOLD_RED_COLOR}DIRTY${TERMINATE_COLOR}"
+                echo -e "$d: $(with_color red DIRTY)"
             fi
 
-            echo -en "$BLUE_COLOR"
             if [ "$status" != '' ]
             then
                 if [ "$dirty_only" == 'false' ]
                 then
-                    echo -e "\nWorking tree is dirty:"
+                    echo
+                    with_color blue "Working tree is dirty:"
                 fi
-                echo "$status"
+                echo "$status" | colorize_lines blue
             fi
 
             if [ "$behind" != '0' ]
             then
                 if [ "$behind_only" == 'false' ]
                 then
-                    echo -e "\nCommits on origin/${branch} but not ${branch}:"
+                    echo
+                    with_color blue "Commits on origin/${branch} but not ${branch}:"
                 fi
-                git rev-list --oneline "${branch}..origin/${branch}"
+                git rev-list --oneline "${branch}..origin/${branch}" | colorize_lines blue
             fi
 
             if [ "$ahead" != '0' ]
             then
                 if [ "$ahead_only" == 'false' ]
                 then
-                    echo -e "\nCommits on ${branch} but not origin/${branch}:"
+                    echo
+                    with_color blue "Commits on ${branch} but not origin/${branch}:"
                 fi
-                git rev-list --oneline "origin/${branch}..${branch}"
+                git rev-list --oneline "origin/${branch}..${branch}" | colorize_lines blue
             fi
-            echo -e "$TERMINATE_COLOR"
+            echo
         fi
         popd &> /dev/null
     done
