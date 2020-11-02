@@ -50,6 +50,12 @@ colorize_lines() {
 }
 
 run_once() {
+    if [ "${MULTIGITSTATUS_DO_FETCH:-false}" == 'true' ]
+    then
+        with_color blue 'Fetching updates from Git remotes...'
+        echo
+    fi
+
     for d in $(ls)
     do
         if [ ! -d "${d}/.git" ]
@@ -58,6 +64,11 @@ run_once() {
         fi
 
         pushd $d &> /dev/null
+
+        if [ "${MULTIGITSTATUS_DO_FETCH:-false}" == 'true' ]
+        then
+            git fetch -q
+        fi
 
         status=$(git status --short)
 
@@ -131,20 +142,24 @@ run_once() {
 if [ -z "${MULTIGITSTATUS_DO_RUN:-}" ]
 then
     export MULTIGITSTATUS_DO_RUN=true
-    sub_run_out=""
+    fetch_period_seconds="${MULTIGITSTATUS_FETCH_PERIOD_SECONDS:-3600}"
+    sleep_seconds="${MULTIGITSTATUS_SLEEP_SECONDS:-5}"
+    sub_run_out=$("$0" "$@")
+    run_ct=0
     while true
     do
-        if [ -z "$sub_run_out" ]
-        then
-            sub_run_out=$("$0" "$@")
-        fi
+        run_ct=$((run_ct + 1))
         echo -e "$sub_run_out" | less -K -c -R &
         bg_pid=$!
-        for i in $(seq 1 5)
+        for i in $(seq 1 $sleep_seconds)
         do
             { ps -p $bg_pid > /dev/null; } || exit 1
             sleep 1
         done
+        export MULTIGITSTATUS_DO_FETCH=$(
+            test $((run_ct % (fetch_period_seconds / sleep_seconds))) = 0 \
+                && echo true \
+                    || echo false)
         sub_run_out=$("$0" "$@")
         kill $bg_pid
     done
