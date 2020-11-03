@@ -71,13 +71,22 @@ colorize_lines() {
 }
 
 run_once() {
-    if [ -d ".git" ]
-    then
-        cd ..
-    fi
 
-    with_color blue "Multigitstatus for $(pwd)"
-    echo
+    if [ $# == 0 ]
+    then
+        if [ -d '.git' ]
+        then
+            cd ..
+        fi
+
+        with_color blue "Multigitstatus for $(pwd)"
+        echo
+        dirs_to_monitor=$(find . -maxdepth 3 -type d -name '.git' | xargs dirname)
+    else
+        with_color blue "Multigitstatus for $@"
+        echo
+        dirs_to_monitor="$@"
+    fi
 
     if [ "${MULTIGITSTATUS_DO_FETCH:-false}" == 'true' ]
     then
@@ -85,10 +94,8 @@ run_once() {
         echo
     fi
 
-    for d in $(find . -maxdepth 3 -type d -name '.git')
+    for d in $dirs_to_monitor
     do
-        d=$(dirname $d)
-
         pushd "$d" &> /dev/null
 
         if [ "${MULTIGITSTATUS_DO_FETCH:-false}" == 'true' ]
@@ -187,5 +194,5 @@ then
         kill $bg_pid
     done
 else
-    run_once
+    run_once "$@"
 fi
