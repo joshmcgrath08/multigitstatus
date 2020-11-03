@@ -21,6 +21,27 @@ current_git_branch() {
     git branch | egrep '^\*' | awk '{print $2}'
 }
 
+check_remote_branch_exists() {
+    { git branch -a | grep "remotes/${1}" &> /dev/null ; } && echo true || echo false
+}
+
+current_git_branch_upstream() {
+    res=$(git branch -vv | egrep '^\*' | egrep -o '\[[^]]+\]' | head -n 1 | tr -d '[]:' | awk '{print $1}')
+    if [ ! -z "$res" -a $(check_remote_branch_exists "$res") == true ]
+    then
+        echo "$res"
+    elif [ $(check_remote_branch_exists 'origin/main') == true ]
+    then
+        echo 'origin/main'
+    elif [ $(check_remote_branch_exists 'origin/master') == true ]
+    then
+         echo 'origin/master'
+    else
+        >&2 echo "Could not determine upstream in $(pwd)"
+        exit 1
+    fi
+}
+
 with_color() {
     if [ "$1" == 'green' ]
     then
@@ -77,9 +98,10 @@ run_once() {
 
         status=$(git status --short)
 
-        branch=$(current_git_branch)
-        behind=$(git rev-list --count "${branch}..origin/${branch}")
-        ahead=$(git rev-list --count "origin/${branch}..${branch}")
+        local_branch=$(current_git_branch)
+        remote_branch=$(current_git_branch_upstream)
+        behind=$(git rev-list --count "${local_branch}..remotes/${remote_branch}")
+        ahead=$(git rev-list --count "remotes/${remote_branch}..${local_branch}")
 
         ahead_only=false
         behind_only=false
@@ -124,15 +146,15 @@ run_once() {
             if [ "$behind" != '0' ]
             then
                 echo
-                with_color blue "Commits on origin/${branch} but not ${branch}:"
-                git rev-list --right-only --oneline "${branch}..origin/${branch}" | colorize_lines blue
+                with_color blue "Commits on ${remote_branch} but not ${local_branch}:"
+                git rev-list --right-only --oneline "${local_branch}..remotes/${remote_branch}" | colorize_lines blue
             fi
 
             if [ "$ahead" != '0' ]
             then
                 echo
-                with_color blue "Commits on ${branch} but not origin/${branch}:"
-                git rev-list --right-only --oneline "origin/${branch}..${branch}" | colorize_lines blue
+                with_color blue "Commits on ${local_branch} but not ${remote_branch}:"
+                git rev-list --right-only --oneline "remotes/${remote_branch}..${local_branch}" | colorize_lines blue
             fi
             echo
         fi
