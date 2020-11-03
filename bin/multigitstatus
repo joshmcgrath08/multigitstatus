@@ -50,6 +50,11 @@ colorize_lines() {
 }
 
 run_once() {
+    if [ -d ".git" ]
+    then
+        cd ..
+    fi
+
     with_color blue "Multigitstatus for $(pwd)"
     echo
 
@@ -59,14 +64,11 @@ run_once() {
         echo
     fi
 
-    for d in $(ls)
+    for d in $(find . -maxdepth 3 -type d -name '.git')
     do
-        if [ ! -d "${d}/.git" ]
-        then
-            continue
-        fi
+        d=$(dirname $d)
 
-        pushd $d &> /dev/null
+        pushd "$d" &> /dev/null
 
         if [ "${MULTIGITSTATUS_DO_FETCH:-false}" == 'true' ]
         then
