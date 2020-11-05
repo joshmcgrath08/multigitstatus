@@ -18,7 +18,12 @@ maybe_pluralize() {
 }
 
 current_git_branch() {
-    git branch | egrep '^\*' | awk '{print $2}'
+    if [ $(git status | head -n 1 | egrep -c '^HEAD detached') -gt 0 ]
+    then
+        echo 'HEAD'
+    else
+        git branch | egrep '^\*' | awk '{print $2}'
+    fi
 }
 
 check_remote_branch_exists() {
