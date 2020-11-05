@@ -21,8 +21,11 @@ current_git_branch() {
     if [ $(git status | head -n 1 | egrep -c '^HEAD detached') -gt 0 ]
     then
         echo 'HEAD'
-    else
+    elif [ ! -z "$(git branch)" ]
+    then
         git branch | egrep '^\*' | awk '{print $2}'
+    else
+        echo ''
     fi
 }
 
@@ -42,8 +45,7 @@ current_git_branch_upstream() {
     then
          echo 'origin/master'
     else
-        >&2 echo "Could not determine upstream in $(pwd)"
-        exit 1
+        echo ''
     fi
 }
 
@@ -111,7 +113,21 @@ run_once() {
         status=$(git status --short)
 
         local_branch=$(current_git_branch)
+        if [ -z "$local_branch" ]
+        then
+            echo -e "$d: $(with_color red COULD NOT DETERMINE LOCAL BRANCH)"
+            popd &> /dev/null
+            continue
+        fi
+
         remote_branch=$(current_git_branch_upstream)
+        if [ -z "$remote_branch" ]
+        then
+            echo -e "$d: $(with_color red COULD NOT DETERMINE REMOTE BRANCH)"
+            popd &> /dev/null
+            continue
+        fi
+
         behind=$(git rev-list --count "${local_branch}..remotes/${remote_branch}")
         ahead=$(git rev-list --count "remotes/${remote_branch}..${local_branch}")
 
