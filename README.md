@@ -9,3 +9,11 @@ Monitor multiple Git repos in a terminal
 3. Run `multigitstatus` from a Git repo or a parent directory of Git repos, or pass the directories you want to monitor as arguments
 
 ![Usage Gif](https://www.dl.dropboxusercontent.com/s/kg0v3vu6aga6vqy/multigitstatus.gif?dl=0)
+
+## Requirements
+
+Care has been taken to minimize the requirements of this script. Provided that a non-ancient version of `git` is available, it should run without issue on any of the following:
+
+- Any Linux distro with `bash`
+- Any macOS version (and probably most versions of OSX)
+- Windows Subsystem for Linux
